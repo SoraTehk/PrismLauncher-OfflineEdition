@@ -35,6 +35,7 @@
 
 #include "Library.h"
 #include "MinecraftInstance.h"
+#include "modplatform/helpers/HashUtils.h"
 #include "net/Request.h"
 
 #include <BuildConfig.h>
@@ -138,10 +139,12 @@ QList<Net::Request::Ptr> Library::getDownloads(const RuntimeContext& runtimeCont
         }
         if (!entry->isStale())
             return true;
-        Net::Request::Options options;
-        if (stale) {
-            options |= Net::Request::Option::AcceptLocalFiles;
+        // a library already on disk with the expected checksum (e.g. shipped in a portable copy) needs no download
+        if (!stale && !sha1.isEmpty() && Hashing::hash(entry->getFullPath(), Hashing::Algorithm::Sha1) == sha1) {
+            return true;
         }
+        // without network, keep using the local copy
+        Net::Request::Options options = Net::Request::Option::AcceptLocalFiles;
 
         // Don't add a time limit for the libraries cache entry validity
         options |= Net::Request::Option::MakeEternal;

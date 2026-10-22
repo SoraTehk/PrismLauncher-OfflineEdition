@@ -5,6 +5,7 @@
 #include "minecraft/AssetsUtils.h"
 #include "minecraft/MinecraftInstance.h"
 #include "minecraft/PackProfile.h"
+#include "modplatform/helpers/HashUtils.h"
 #include "net/ChecksumValidator.h"
 
 #include "Application.h"
@@ -24,6 +25,11 @@ void AssetUpdateTask::executeTask()
     auto assets = profile->getMinecraftAssets();
     QUrl indexUrl = assets->url;
     QString localPath = assets->id + ".json";
+    // an asset index already on disk with the expected checksum (e.g. shipped in a portable copy) needs no download
+    if (!assets->sha1.isEmpty() && Hashing::hash("assets/indexes/" + localPath, Hashing::Algorithm::Sha1) == assets->sha1) {
+        assetIndexFinished();
+        return;
+    }
     auto job = makeShared<NetJob>(tr("Asset index for %1").arg(m_inst->name()), APPLICATION->network());
 
     auto metacache = APPLICATION->metacache();
@@ -31,7 +37,8 @@ void AssetUpdateTask::executeTask()
     entry->setStale(true);
     auto hexSha1 = assets->sha1.toLatin1();
     qDebug() << "Asset index SHA1:" << hexSha1;
-    auto dl = Net::ApiRequest::makeCached(indexUrl, entry);
+    // without network, keep using the local copy
+    auto dl = Net::ApiRequest::makeCached(indexUrl, entry, Net::Request::Option::AcceptLocalFiles);
     dl->addValidator(new Net::ChecksumValidator(QCryptographicHash::Sha1, assets->sha1));
     job->addNetAction(dl);
 

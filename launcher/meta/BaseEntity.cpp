@@ -151,7 +151,8 @@ void BaseEntityLoadTask::executeTask()
         entry->setRemoteChangedTimestamp({});
     }
     entry->setStale(true);
-    auto dl = Net::ApiRequest::makeCached(url, entry);
+    // without network, keep using the local copy (e.g. a portable copy used offline)
+    auto dl = Net::ApiRequest::makeCached(url, entry, Net::Request::Option::AcceptLocalFiles);
     /*
      * The validator parses the file and loads it into the object.
      * If that fails, the file is not written to storage.

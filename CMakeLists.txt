@@ -507,6 +507,12 @@ elseif(WIN32)
     set(PLUGIN_DEST_DIR ".")
     set(RESOURCES_DEST_DIR ".")
     set(JARS_DEST_DIR "jars")
+
+    # Ship the MSVC runtime next to the executables so the portable build starts without the VC++ Redistributable
+    if(MSVC)
+        set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${BINARY_DEST_DIR}")
+        include(InstallRequiredSystemLibraries)
+    endif()
 else()
     message(FATAL_ERROR "Platform not supported")
 endif()
